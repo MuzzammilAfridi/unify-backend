@@ -2,13 +2,12 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db");
+
 const leadRoutes = require("./routes/leadRoutes");
 const leadSourceRoutes = require("./routes/leadSourceRoutes");
 const subscriberRoutes = require("./routes/subscriberRoutes");
 const leadSourceMappingRoutes = require("./routes/leadSourceMappingRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
-// import planRequestRoutes from "./routes/planRequest.routes.js";
-
 
 dotenv.config();
 const app = express();
@@ -26,8 +25,6 @@ app.use("/api/lead-sources", leadSourceRoutes);
 app.use("/api/subscribers", subscriberRoutes);
 app.use("/api/lead-source-mappings", leadSourceMappingRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
-
-
 
 app.get("/", (req, res) => {
   res.send("Backend running");
