@@ -1,7 +1,10 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Subscriber = require("../models/Subscriber");
 const TokenBlacklist = require("../models/TokenBlacklist");
+
+
 
 const generateAccessToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "15m" });
@@ -14,23 +17,53 @@ const generateRefreshToken = (id) => {
 // REGISTER
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, phone } = req.body;
 
-    const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ msg: "Email already exists" });
+    // ✅ Check if user exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists"
+      });
+    }
 
-    const hashed = await bcrypt.hash(password, 10);
+    // ✅ Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({ 
-      name, 
-      email, 
-      password: hashed,
-      role: role || "user"
+    // ✅ Create User FIRST
+    const newUser = await User.create({
+      name,
+      email,
+       phone,  
+      password: hashedPassword,
+      role: "user"
     });
 
-    res.json({ msg: "User registered", user });
+    // ✅ Create Subscriber
+    const newSubscriber = await Subscriber.create({
+      contact_phone: phone,
+      contact_email: email,
+      owner_user_id: newUser._id
+    });
+
+    // ✅ 🔥 UPDATE USER WITH subscriber_id (MISSING STEP)
+    newUser.subscriber_id = newSubscriber._id;
+    await newUser.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "User & Subscriber created successfully",
+      user: newUser,
+      subscriber: newSubscriber
+    });
+
   } catch (error) {
-    res.status(500).json({ msg: error.message });
+    console.error("Register Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
   }
 };
 
@@ -87,6 +120,93 @@ exports.refreshToken = async (req, res) => {
     res.status(500).json({ msg: error.message });
   }
 };
+
+
+// GET /api/auth/users?q=<optional search>
+exports.getAllUsers = async (req, res) => {
+  try {
+    const q = (req.query.q || "").trim();
+
+    // Build search filter if q provided (case-insensitive partial match)
+    let filter = {};
+    if (q) {
+      const regex = new RegExp(q, "i");
+      filter = {
+        $or: [
+          { name: regex },
+          { email: regex },
+          { phone: regex }
+        ]
+      };
+    }
+
+    // Optionally support pagination later (page & limit)
+    const users = await User.find(filter)
+      .select("-password -refreshToken -__v")
+      .lean();
+
+    // Return users with minimal fields; subscribers will be null or ObjectId
+    return res.json({ success: true, data: users });
+  } catch (err) {
+    console.error("getAllUsers:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+
+// ✅ GET USER BY ID
+exports.getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select("-password -refreshToken");
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
+
+// ✅ UPDATE USER BY ID
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // ❌ Prevent password & role update directly from here
+    const restrictedFields = ["password", "role"];
+    restrictedFields.forEach(field => delete req.body[field]);
+
+    // ✅ Only allow self-update OR admin
+    if (req.user.id !== id && req.user.role !== "admin") {
+      return res.status(403).json({ msg: "Access denied" });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      req.body,
+      { new: true, runValidators: true }
+    ).select("-password -refreshToken");
+
+    if (!updatedUser) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      msg: "User updated successfully",
+      user: updatedUser
+    });
+
+  } catch (error) {
+    res.status(500).json({ msg: error.message });
+  }
+};
+
 
 
 exports.profile = async (req, res) => {

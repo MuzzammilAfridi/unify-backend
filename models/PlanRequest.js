@@ -49,6 +49,13 @@ const planRequestSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+
+    subscriber_id: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Subscriber",
+  required: true
+}
+
   },
   { timestamps: true }
 );

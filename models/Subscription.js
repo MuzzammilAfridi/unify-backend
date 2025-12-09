@@ -16,9 +16,19 @@ const subscriptionSchema = new mongoose.Schema(
 
     plan_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Plan",
+      ref: "Plan",  // ✅ FIXED
       required: true,
     },
+
+    start_date: {
+      type: Date,
+      default: Date.now
+    },
+
+    end_date: {
+      type: Date
+    }
+
   },
   { timestamps: true }
 );

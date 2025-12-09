@@ -40,7 +40,7 @@ const leadSchema = new mongoose.Schema(
 
     mapping_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Mapping",
+      ref: "LeadSourceMapping",
       required: false,
     },
   },

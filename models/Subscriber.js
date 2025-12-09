@@ -11,7 +11,7 @@ const subscriberSchema = new mongoose.Schema(
 
     contact_phone: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
 

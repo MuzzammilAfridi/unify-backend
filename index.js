@@ -9,16 +9,30 @@ const subscriberRoutes = require("./routes/subscriberRoutes");
 const leadSourceMappingRoutes = require("./routes/leadSourceMappingRoutes");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
 
+
 dotenv.config();
 const app = express();
 connectDB();
 
-app.use(cors());
+// ✅ FORCE-REGISTER ALL MODELS HERE
+require("./models/Plan");               // ✅ THIS WAS MISSING (MAIN ISSUE)
+require("./models/Subscription");
+require("./models/Subscriber");
+require("./models/AcceptedPlanRequest");
+require("./models/PlanRequest");
+
+
+app.use(cors({
+  origin: "http://localhost:3000", // ✅ Your frontend URL
+  credentials: true               // ✅ Allow cookies / auth headers
+}));
 app.use(express.json());
 
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/plan-request", require("./routes/planRoutes"));
+app.use("/api/plans", require("./routes/planDetailsRoutes"));
+
 
 app.use("/api/leads", leadRoutes);
 app.use("/api/lead-sources", leadSourceRoutes);
