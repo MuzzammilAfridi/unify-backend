@@ -23,7 +23,7 @@ require("./models/PlanRequest");
 
 
 app.use(cors({
-  origin: "https://unify-backend-5ybf.onrender.com", // ✅ Your frontend URL
+  origin: "http://localhost:3000", // ✅ Your frontend URL
   credentials: true               // ✅ Allow cookies / auth headers
 }));
 app.use(express.json());
